@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>理科実験 仮説設定支援ツール</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+
+    <div class="max-w-4xl mx-auto" x-data="hypothesisApp()" x-init="initLucide()">
+        <div class="bg-white rounded-2xl shadow-xl p-8">
+            
+            <div class="flex items-center gap-3 mb-6">
+                <i data-lucide="lightbulb" class="w-8 h-8 text-indigo-600"></i>
+                <h1 class="text-3xl font-bold text-gray-800">理科実験 仮説設定支援ツール</h1>
+            </div>
+
+            <div class="flex gap-2 mb-6 border-b-2 border-gray-200">
+                <button 
+                    @click="activeTab = 'input'"
+                    :class="activeTab === 'input' ? 'text-indigo-600 border-b-2 border-indigo-600 -mb-0.5' : 'text-gray-500 hover:text-gray-700'"
+                    class="px-6 py-3 font-semibold transition-colors focus:outline-none">
+                    仮説を入力
+                </button>
+                <button 
+                    @click="activeTab = 'demo'"
+                    :class="activeTab === 'demo' ? 'text-indigo-600 border-b-2 border-indigo-600 -mb-0.5' : 'text-gray-500 hover:text-gray-700'"
+                    class="px-6 py-3 font-semibold transition-colors focus:outline-none">
+                    使い方（デモ）
+                </button>
+            </div>
+
+            <div x-show="activeTab === 'demo'" x-cloak class="space-y-6">
+                <div class="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                    <h3 class="font-bold text-blue-900 mb-2">このツールの使い方</h3>
+                    <p class="text-blue-800 mb-4">
+                        実験の目的と仮説を入力すると、AIが自動で仮説の質をチェックします。
+                        下のボタンをクリックして、良い例と悪い例を試してみましょう。
+                    </p>
+                </div>
+
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <h4 class="font-semibold text-gray-800 mb-2">実験の目的:</h4>
+                    <p class="text-gray-700" x-text="demoData.purpose"></p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="p-6 bg-green-50 border-2 border-green-300 rounded-lg">
+                        <h4 class="font-bold text-green-900 mb-3 flex items-center gap-2">
+                            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                            良い仮説の例
+                        </h4>
+                        <p class="text-green-800 mb-4 italic" x-text="'「' + demoData.correct + '」'"></p>
+                        <button @click="loadDemo('correct')" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors">
+                            この例を試す
+                        </button>
+                    </div>
+
+                    <div class="p-6 bg-red-50 border-2 border-red-300 rounded-lg">
+                        <h4 class="font-bold text-red-900 mb-3 flex items-center gap-2">
+                            <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                            不十分な仮説の例
+                        </h4>
+                        <p class="text-red-800 mb-4 italic" x-text="'「' + demoData.incorrect + '」'"></p>
+                        <button @click="loadDemo('incorrect')" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-700 transition-colors">
+                            この例を試す
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg">
+                    <h4 class="font-semibold text-yellow-900 mb-2">ポイント</h4>
+                    <p class="text-yellow-800">
+                        良い仮説は、独立変数（何を変えるか）と従属変数（何を測るか）の両方が明確に書かれています。
+                        不十分な仮説は、何が何に影響するのかが不明確です。
+                    </p>
+                </div>
+            </div>
+
+            <div x-show="activeTab === 'input'" x-cloak>
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 class="font-semibold text-gray-800 mb-2">良い仮説のポイント</h3>
+                    <ul class="text-sm text-gray-600 space-y-1 list-disc list-inside">
+                        <li>実験の目的や問いに対する具体的な答えになっている</li>
+                        <li>実験で確かめられる形になっている（測定可能）</li>
+                        <li>独立変数（変える要因）と従属変数（変化を見る要因）が明確</li>
+                    </ul>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">実験の目的・問い</label>
+                    <textarea x-model="purpose" placeholder="例: 温度が化学反応の速さに与える影響を調べる" class="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none resize-none" rows="2"></textarea>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">仮説（実験の目的や問に対する暫定的な答え）</label>
+                    <textarea x-model="hypothesis" placeholder="例: 温度を高くすると、化学反応の速さは速くなる。..." class="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none resize-none" rows="4"></textarea>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-xs font-semibold text-red-400 mb-1">Anthropic API Key (検証用)</label>
+                    <input type="password" x-model="apiKey" placeholder="sk-ant-..." class="w-full p-2 text-sm border border-gray-200 rounded focus:outline-none">
+                </div>
+
+                <button 
+                    @click="checkHypothesis" 
+                    :disabled="checking || !hypothesis.trim() || !purpose.trim()"
+                    class="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors mb-6">
+                    <span x-text="checking ? 'チェック中...' : '仮説をチェックする'"></span>
+                </button>
+
+                <div class="space-y-3">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">チェック項目</h2>
+                    
+                    <template x-for="(item, index) in checkLabels" :key="index">
+                        <div :class="getResultClass(index, 'bg')" class="flex items-start gap-3 p-3 rounded-lg transition-colors">
+                            <i :data-lucide="getResultIcon(index)" :class="getResultClass(index, 'icon')" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
+                            <div class="flex-1">
+                                <div class="font-medium" :class="getResultClass(index, 'title')" x-text="item.label"></div>
+                                <div x-show="results && results['check' + (index+1)]" class="text-sm mt-1" :class="getResultClass(index, 'text')" x-text="results ? results['check' + (index+1)].feedback : ''"></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <div x-show="results && results.overall" x-cloak class="mt-6 p-4 bg-indigo-50 border-2 border-indigo-200 rounded-lg">
+                    <h3 class="font-semibold text-indigo-900 mb-2">総合アドバイス</h3>
+                    <p class="text-indigo-800" x-text="results ? results.overall : ''"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function hypothesisApp() {
+            return {
+                activeTab: 'input',
+                hypothesis: '',
+                purpose: '',
+                apiKey: '',
+                checking: false,
+                results: null,
+                demoData: {
+                    purpose: '振り子が往復する時間に関係がある物理量を特定する。',
+                    correct: '振り子の質量が振り子の往復する時間に反比例する',
+                    incorrect: '振り子の質量が反比例する'
+                },
+                checkLabels: [
+                    { label: "目的や問に対する回答になっている" },
+                    { label: "検証できる内容になっている（測定可能・観察可能）" },
+                    { label: "独立変数（変える要因）と従属変数（変化を見る要因）が明記されている" }
+                ],
+                initLucide() {
+                    lucide.createIcons();
+                },
+                loadDemo(type) {
+                    this.purpose = this.demoData.purpose;
+                    this.hypothesis = type === 'correct' ? this.demoData.correct : this.demoData.incorrect;
+                    this.results = null;
+                    this.activeTab = 'input';
+                    this.$nextTick(() => lucide.createIcons());
+                },
+                async checkHypothesis() {
+                    if (!this.apiKey) {
+                        alert('APIキーを入力してください（ブラウザから直接APIを叩く設定になっています）');
+                        return;
+                    }
+                    this.checking = true;
+                    this.results = null;
+
+                    try {
+                        const response = await fetch("https://api.anthropic.com/v1/messages", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "x-api-key": this.apiKey,
+                                "anthropic-version": "2023-06-01",
+                                "anthropic-dangerous-direct-browser-access": "true" // ブラウザからのテスト用
+                            },
+                            body: JSON.stringify({
+                                model: "claude-3-sonnet-20240229",
+                                max_tokens: 1000,
+                                messages: [{
+                                    role: "user",
+                                    content: `以下の実験目的と仮説を評価してください。
+実験の目的: ${this.purpose}
+仮説: ${this.hypothesis}
+
+以下の3つの観点で評価し、JSON形式で返してください:
+1. 目的や問に対する回答になっているか
+2. 検証できる内容になっているか
+3. 独立変数と従属変数が明記されているか
+
+JSONフォーマット:
+{
+  "check1": { "passed": true/false, "feedback": "フィードバック" },
+  "check2": { "passed": true/false, "feedback": "フィードバック" },
+  "check3": { "passed": true/false, "feedback": "フィードバック" },
+  "overall": "全体的なアドバイス"
+}`
+                                }],
+                            })
+                        });
+
+                        const data = await response.json();
+                        const text = data.content[0].text;
+                        const cleanText = text.replace(/```json|```/g, "").trim();
+                        this.results = JSON.parse(cleanText);
+                    } catch (error) {
+                        console.error("エラー:", error);
+                        alert("チェック中にエラーが発生しました。");
+                    } finally {
+                        this.checking = false;
+                        this.$nextTick(() => lucide.createIcons());
+                    }
+                },
+                getResultClass(index, part) {
+                    const key = 'check' + (index + 1);
+                    const res = this.results ? this.results[key] : null;
+                    
+                    if (!res) {
+                        if (part === 'bg') return 'bg-gray-50';
+                        if (part === 'icon') return 'text-gray-400';
+                        if (part === 'title') return 'text-gray-600';
+                        return '';
+                    }
+
+                    if (res.passed) {
+                        if (part === 'bg') return 'bg-green-50';
+                        if (part === 'icon') return 'text-green-600';
+                        if (part === 'title') return 'text-green-900';
+                        if (part === 'text') return 'text-green-700';
+                    } else {
+                        if (part === 'bg') return 'bg-yellow-50';
+                        if (part === 'icon') return 'text-yellow-600';
+                        if (part === 'title') return 'text-yellow-900';
+                        if (part === 'text') return 'text-yellow-700';
+                    }
+                },
+                getResultIcon(index) {
+                    const key = 'check' + (index + 1);
+                    const res = this.results ? this.results[key] : null;
+                    if (!res) return 'circle';
+                    return res.passed ? 'check-circle-2' : 'alert-circle';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
